@@ -4,7 +4,7 @@ const path = require('path');
 const app = express();
 const port = process.env.PORT || 3000; 
 
-const directoryToServe = path.join(__dirname, 'projectiles');
+const directoryToServe = path.join(__dirname, '../public/');
 
 app.use(express.static(directoryToServe));
 
