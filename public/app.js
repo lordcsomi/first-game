@@ -104,7 +104,7 @@ class Camera{
         this.zIndex = -100;
     }
 
-    update(deltaTime){
+    update(deltaTime){ // redo this so it is not specific to the main camera
         if (pressed_keys[KEYCODES.LEFT]) {
             main_camera.move(main_camera.x + deltaTime, main_camera.y);
         }
@@ -129,6 +129,7 @@ class Camera{
     }
 
     draw(ctx){
+        ctx.scale(scaledWidth, scaledHeight);
         ctx.setTransform(1, 0, 0, 1, this.x, this.y);
     }
 }
@@ -276,6 +277,39 @@ class Sprite {
 }
 
 
+class Background extends Sprite {
+    constructor(imagePath, x, y, sf, darkness, transparency, hue) {
+        super(imagePath, x, y, sf);
+        this.darkness = darkness;
+        this.transparency = transparency;
+        this.hue = hue;
+        this.image = new Image();
+        this.image.onload = () => {
+            // Once the image is loaded, call the draw method
+            this.draw(ctx);
+        };
+        this.image.onerror = (error) => {
+            console.error("Error loading image:", error);
+        };
+        this.image.src = imagePath;
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.scale(this.sf, this.sf);
+        ctx.globalAlpha = this.transparency;
+        ctx.filter = `brightness(${this.darkness}) hue-rotate(${this.hue}deg)`;
+        ctx.drawImage(this.image, this.x, this.y, this.image.width, this.image.height);
+        ctx.restore();
+    }
+
+    update() {
+        // do nothing
+    }
+}
+
+
+
 // ----------------------------------------
 // FUNCTIONS
 // ----------------------------------------
@@ -330,31 +364,44 @@ window.addEventListener('mousemove', (e) => {
 // MAIN
 // ----------------------------------------
 const main_group = new RenderGroup();
-var main_camera = new Camera(0, 0, canvas.width, canvas.height);
+var main_camera = new Camera(-1000, 0, canvas.width, canvas.height);
 main_group.add(main_camera);
-/*
-This is a multi-line comment in JavaScript.
-You can add multiple lines of comments here.
-main_group.add(new Circle(100, 100, 50, 'red'));
-main_group.add(new AnimatedSprite(['assets/enemy-0.png', 'assets/enemy-1.png', 'assets/enemy-2.png'], 100, 100, 100, 1, screen.width, screen.height));
+
+const intervalId = setInterval(() => { // move camera to the left
+    if (main_camera.x >= 0) {
+        clearInterval(intervalId);
+    } else {
+        main_camera.move(main_camera.x + 10, main_camera.y);
+    }
+}, 1000 / 60);
+
+
+var character = new AnimatedSprite(['assets/enemy-0.png', 'assets/enemy-1.png', 'assets/enemy-2.png'], 100, 100, canvas.height*0.78, 1, screen.width, screen.height);
+main_group.add(character);
+setInterval(() => {
+    character.move(character.x + 1, character.y);
+}, 1000 / 60);
+
 main_group.add(new Projectile(200, 200, 10, 'blue', { x: 100, y: 100 }, LIFESPAN, GRAVITY));
-main_group.add(new Sprite('assets/tree.png', 300, 300, 0.5));
-*/
+main_group.add(new Sprite('assets/tree.png', 300, canvas.width*0.4, 0.4));
+main_group.add(new Background('assets/tree.png', 1000, canvas.width*0.4, 0.4, 1, 1, 90));
+
 for (let i = 0; i < canvas.width *3; i += 50) {
     for (let j = 0; j < canvas.height; j += 50) {
-        const rectHorizontal = new Rectangle(i, j, 50, 1, 'gray');
-        rectHorizontal.zIndex = -2;
+        const rectHorizontal = new Rectangle(i, j, 50, 1, 'rgba(0, 0, 0, 0.5)');
+        rectHorizontal.zIndex = -10;
         main_group.add(rectHorizontal);
 
-        const rectVertical = new Rectangle(i, j, 1, 50, 'gray');
-        rectVertical.zIndex = -2;
+        const rectVertical = new Rectangle(i, j, 1, 50, 'rgba(0, 0, 0, 0.5)');
+        rectVertical.zIndex = -10;
         main_group.add(rectVertical);
     }
 }
-
+const ground = new Rectangle(0, canvas.height * 0.96, canvas.width*3, 20, 'white');
+ground.zIndex = -10;
+main_group.add(ground);
 
 let lastTime = 0;
-
 function update(currentTime) {
     const deltaTime = Math.round((currentTime - lastTime));
     ctx.clearRect(0, 0, -main_camera.x + main_camera.width, -main_camera.y + main_camera.height);
